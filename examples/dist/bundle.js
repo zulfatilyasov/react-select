@@ -93,7 +93,7 @@ var Select = React.createClass({
 		matchPos: React.PropTypes.string, // (any|start) match the start or entire string when filtering
 		matchProp: React.PropTypes.string, // (any|label|value) which option property to filter on
 		inputProps: React.PropTypes.object, // custom attributes for the Input (in the Select-control) e.g: {'data-foo': 'bar'}
-
+		allowCreate: React.PropTypes.bool, // wether to allow creation of new entries
 		/*
   * Allow user to make option label clickable. When this handler is defined we should
   * wrap label into <a>label</a> tag.
@@ -125,6 +125,7 @@ var Select = React.createClass({
 			matchPos: 'any',
 			matchProp: 'any',
 			inputProps: {},
+			allowCreate: false,
 
 			onOptionLabelClick: undefined
 		};
@@ -448,6 +449,15 @@ var Select = React.createClass({
 				this.focusNextOption();
 				break;
 
+			case 188:
+				// ,
+				if (this.props.allowCreate) {
+					event.preventDefault();
+					event.stopPropagation();
+					this.selectFocusedOption();
+				};
+				break;
+
 			default:
 				return;
 		}
@@ -576,6 +586,9 @@ var Select = React.createClass({
 	},
 
 	selectFocusedOption: function selectFocusedOption() {
+		if (this.props.allowCreate && !this.state.focusedOption) {
+			return this.selectValue(this.state.inputValue);
+		};
 		return this.selectValue(this.state.focusedOption);
 	},
 
@@ -651,6 +664,15 @@ var Select = React.createClass({
 		if (this.state.filteredOptions.length > 0) {
 			focusedValue = focusedValue == null ? this.state.filteredOptions[0] : focusedValue;
 		}
+		// Add the current value to the filtered options in last resort
+		if (this.props.allowCreate && !this.state.filteredOptions.length) {
+			var inputValue = this.state.inputValue;
+			this.state.filteredOptions.push({
+				value: inputValue,
+				label: inputValue,
+				create: true
+			});
+		};
 
 		var ops = Object.keys(this.state.filteredOptions).map(function (key) {
 			var op = this.state.filteredOptions[key];
@@ -678,7 +700,7 @@ var Select = React.createClass({
 				return React.createElement(
 					'div',
 					{ ref: ref, key: 'option-' + op.value, className: optionClass, onMouseEnter: mouseEnter, onMouseLeave: mouseLeave, onMouseDown: mouseDown, onClick: mouseDown },
-					op.label
+					op.create ? 'Add ' + op.label + ' ?' : op.label
 				);
 			}
 		}, this);
